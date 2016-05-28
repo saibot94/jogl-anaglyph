@@ -8,49 +8,72 @@ import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
+import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.util.gl2.GLUT;
 
 public class AnaglyphRenderer implements GLEventListener {
+    private StereoCamera stereoCamera;
+
+    public AnaglyphRenderer() {
+        super();
+        stereoCamera = new StereoCamera(
+                2000.0f,   // convergence
+                35f,    // eye separation
+                1.3333f, // aspect ratio
+                45f,  // fov along y in degrees
+                10f,   //near clipping
+                20000f // far clipping
+        );
+    }
 
     @Override
     public void display(GLAutoDrawable drawable) {
         final GL2 gl = drawable.getGL().getGL2();
-        //triangle(gl);
-        sierpinski(gl, 5);
+        final GLUT glut = new GLUT();
+        gl.glClearDepth(1.0f);
+        gl.glEnable(GL2.GL_DEPTH_TEST);
+        gl.glDepthFunc(GL2.GL_LEQUAL);
+
+        gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
+        // Apply the left frustum
+        stereoCamera.applyFrustum(gl, true);
+        gl.glColorMask(true, false, false, false);
+        placeSceneElements(gl, glut);
+
+        gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
+        stereoCamera.applyFrustum(gl, false);
+        gl.glColorMask(false, true, true, false);
+        placeSceneElements(gl, glut);
+
+        gl.glColorMask(true, true, true, true);
+
     }
 
-    void triangle(GL2 gl) {
-        gl.glBegin(GL2.GL_LINE_LOOP);
-        {
-            gl.glVertex3f(0.0f, 1f, 0.0f);
-            gl.glVertex3f(-1f, -1.0f, 0.0f);
-            gl.glVertex3f(1f, -1.0f, 0.0f);
-        }
-        gl.glEnd();
+    private void placeSceneElements(GL2 gl, GLUT glut) {
+        gl.glTranslated(-70, -160, -850);
+
+        // rotate the scene for viewing
+        gl.glRotatef(-60f, 1f, 0f, 0f);
+        gl.glRotatef(-45f, 0f, 0f, 1f);
+
+        gl.glPushMatrix();
+        gl.glTranslated(140, 150, 240);
+        gl.glColor3f(0.2f, 0.2f, 0.6f);
+        glut.glutSolidTorus(40, 200, 20, 30);
+        gl.glColor3f(0.7f, 0.7f, 0.7f);
+        glut.glutWireTorus(40, 200, 20, 30);
+        gl.glPopMatrix();
+        gl.glPushMatrix();
+        gl.glTranslated(0, 0, 240);
+        gl.glRotatef(90f, 1f, 0f, 0f);
+        gl.glColor3f(0.2f, 0.2f, 0.6f);
+        glut.glutSolidTorus(40, 200, 20, 30);
+        gl.glColor3f(0.7f, 0.7f, 0.7f);
+        glut.glutWireTorus(40, 200, 20, 30);
+        gl.glPopMatrix();
+
     }
 
-    void sierpinski(GL2 gl, int k) {
-        if (k == 0) {
-            triangle(gl);
-        } else {
-            gl.glPushMatrix();
-            gl.glTranslated(0.0, 0.5 / Math.sqrt(3.0), 0.0);
-            gl.glScaled(0.5, 0.5, 0.5);
-            sierpinski(gl, k-1);
-            gl.glPopMatrix();
-
-            gl.glPushMatrix();
-            gl.glTranslated(0.25, -0.25 / Math.sqrt(3.0), 0.0);
-            gl.glScaled(0.5, 0.5, 0.5);
-            sierpinski(gl, k-1);
-            gl.glPopMatrix();
-
-            gl.glPushMatrix();
-            gl.glTranslated(-0.25, -0.25 / Math.sqrt(3.0), 0.0);
-            gl.glScaled(0.5, 0.5, 0.5);
-            sierpinski(gl, k-1);
-            gl.glPopMatrix();
-        }
-    }
 
     @Override
     public void dispose(GLAutoDrawable drawable) {
@@ -80,15 +103,16 @@ public class AnaglyphRenderer implements GLEventListener {
         // The canvas
         final GLCanvas glcanvas = new GLCanvas(capabilities);
 
-        AnaglyphRenderer sierpinski = new AnaglyphRenderer ();
-        glcanvas.addGLEventListener(sierpinski);
-        glcanvas.setSize(600, 600);
+        AnaglyphRenderer anaglyphRenderer = new AnaglyphRenderer();
+        glcanvas.addGLEventListener(anaglyphRenderer);
+        glcanvas.setSize(800, 800);
         // the window frame
         JFrame frame = new JFrame("Scene example");
         frame.getContentPane().add(glcanvas);
         frame.setSize(frame.getContentPane().getPreferredSize());
         frame.setResizable(false);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
         frame.setVisible(true);
     }
 }
