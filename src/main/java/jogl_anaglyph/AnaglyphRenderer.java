@@ -1,4 +1,5 @@
 package jogl_anaglyph;
+
 import javax.swing.*;
 
 import com.jogamp.opengl.GL2;
@@ -8,7 +9,7 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 
-public class Sierpinski implements GLEventListener {
+public class AnaglyphRenderer implements GLEventListener {
 
     @Override
     public void display(GLAutoDrawable drawable) {
@@ -79,7 +80,7 @@ public class Sierpinski implements GLEventListener {
         // The canvas
         final GLCanvas glcanvas = new GLCanvas(capabilities);
 
-        Sierpinski sierpinski = new Sierpinski();
+        AnaglyphRenderer sierpinski = new AnaglyphRenderer ();
         glcanvas.addGLEventListener(sierpinski);
         glcanvas.setSize(600, 600);
         // the window frame
@@ -90,5 +91,4 @@ public class Sierpinski implements GLEventListener {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
     }
-
 }
