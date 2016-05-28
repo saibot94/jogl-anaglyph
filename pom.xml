@@ -40,7 +40,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>jogl_anaglyph.AnaglyphRenderer</mainClass>
+                            <mainClass>jogl_anaglyph.main.AnaglyphRenderer</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

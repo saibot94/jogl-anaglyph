@@ -1,7 +1,7 @@
-package jogl_anaglyph;
+package jogl_anaglyph.main;
 
 
-public class App 
+public class App
 {
     public static void main( String[] args )
     {

@@ -1,4 +1,4 @@
-package jogl_anaglyph;
+package jogl_anaglyph.main;
 
 import javax.swing.*;
 
