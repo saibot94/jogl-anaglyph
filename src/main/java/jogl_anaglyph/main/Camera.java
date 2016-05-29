@@ -6,7 +6,7 @@ import com.jogamp.opengl.glu.GLU;
 public class Camera {
 
 
-    public float xpos, yrot, zpos, heading;
+    public float xpos, yrot, zpos = 450f, heading;
     private float walkbias = 0.0f;
     private float walkbiasangle = 0.0f;
     private float lookupdown = 0.0f;
@@ -61,6 +61,14 @@ public class Camera {
     public void right(){
         heading -= 2.0f;
         yrot = heading;
+    }
+
+    public void lookup(){
+        lookupdown += 2.0f;
+    }
+
+    public void lookdown(){
+        lookupdown -= 2.0f;
     }
 
 }

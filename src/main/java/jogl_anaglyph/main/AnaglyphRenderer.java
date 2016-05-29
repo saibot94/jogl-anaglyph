@@ -9,11 +9,16 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.glu.GLUquadric;
 import com.jogamp.opengl.util.Animator;
 import com.jogamp.opengl.util.gl2.GLUT;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureData;
+import com.jogamp.opengl.util.texture.TextureIO;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
 
 public class AnaglyphRenderer extends JFrame
         implements GLEventListener {
@@ -26,6 +31,9 @@ public class AnaglyphRenderer extends JFrame
     private StereoCamera stereoCamera;
     private Input input;
     private Camera camera;
+    private Texture planetTexture;
+    private Texture venusTexture;
+    private Texture marsTexture;
 
     public AnaglyphRenderer(GLCanvas canvas) {
         super();
@@ -82,6 +90,44 @@ public class AnaglyphRenderer extends JFrame
 
     }
 
+
+    private Texture getObjectTexture(GL2 gl, String fileName) {
+        InputStream stream = null;
+        Texture tex = null;
+        String extension = fileName.substring(fileName.lastIndexOf('.'));
+        try {
+            stream = getClass().getResourceAsStream(fileName);
+            TextureData data = TextureIO.newTextureData(gl.getGLProfile(), stream, false, extension);
+            tex = TextureIO.newTexture(data);
+        } catch (FileNotFoundException e) {
+            System.err.println("Error loading the file!");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("IO Exception!");
+            e.printStackTrace();
+        }
+
+        return tex;
+    }
+
+    private void applyTexture(Texture tex, GLU glu, GL2 gl) {
+
+        // Apply texture.
+        tex.enable(gl);
+        tex.bind(gl);
+
+        GLUquadric planet = glu.gluNewQuadric();
+        glu.gluQuadricTexture(planet, true);
+        glu.gluQuadricDrawStyle(planet, GLU.GLU_FILL);
+        glu.gluQuadricNormals(planet, GLU.GLU_FLAT);
+        glu.gluQuadricOrientation(planet, GLU.GLU_OUTSIDE);
+        final int slices = 16;
+        final int stacks = 16;
+        glu.gluSphere(planet, 10, slices, stacks);
+        glu.gluDeleteQuadric(planet);
+    }
+
+
     private void placeSceneElements(GL2 gl, GLUT glut) {
 
 
@@ -93,11 +139,42 @@ public class AnaglyphRenderer extends JFrame
         gl.glRotatef(-45f, 0f, 0f, 1f);
 
         gl.glPushMatrix();
+        gl.glTranslated(110, 150, 280);
+        gl.glScaled(100, 100, 100);
+        gl.glColor3f(0.7f, 0.7f, 0.7f);
+        glut.glutSolidIcosahedron();
+        gl.glColor3f(0.8f, 0.8f, 0.8f);
+
+        gl.glScaled(140, 140, 140);
+        glut.glutWireIcosahedron();
+        gl.glPopMatrix();
+
+        gl.glPushMatrix();
+        gl.glTranslated(110, 140, 280);
+        gl.glScaled(110, 110, 110);
+        gl.glColor3f(0.7f, 0.7f, 0.7f);
+        glut.glutWireIcosahedron();
+        gl.glPopMatrix();
+
+
+        gl.glPushMatrix();
+        gl.glTranslated(110, 350, 380);
+        gl.glScaled(75, 75, 75);
+        gl.glColor3f(0.7f, 0.7f, 0.7f);
+        glut.glutSolidIcosahedron();
+        gl.glColor3f(0.7f, 0.7f, 0.7f);
+        glut.glutWireIcosahedron();
+        gl.glPopMatrix();
+
+
+
+        gl.glPushMatrix();
         gl.glTranslated(140, 150, 240);
         gl.glColor3f(0.2f, 0.2f, 0.6f);
         glut.glutSolidTorus(40, 200, 20, 30);
         gl.glColor3f(0.7f, 0.7f, 0.7f);
-        glut.glutWireTorus(40, 200, 20, 30);
+        glut.glutWireTorus(40, 200, 30, 50);
+
         gl.glPopMatrix();
 
         gl.glPushMatrix();
@@ -106,8 +183,41 @@ public class AnaglyphRenderer extends JFrame
         gl.glColor3f(0.2f, 0.2f, 0.6f);
         glut.glutSolidTorus(40, 200, 20, 30);
         gl.glColor3f(0.7f, 0.7f, 0.7f);
-        glut.glutWireTorus(40, 200, 20, 30);
+        glut.glutWireTorus(40, 200, 30, 50);
         gl.glPopMatrix();
+
+        gl.glPushMatrix();
+        GLU glu = new GLU();
+
+        gl.glTranslated(110, -350, 600);
+        gl.glScaled(10, 10, 10);
+
+
+        gl.glColor3f(1f, 1f, 1f);
+        applyTexture(venusTexture, glu, gl);
+        gl.glPopMatrix();
+
+
+        gl.glPushMatrix();
+        gl.glTranslated(350, -150, 380);
+        gl.glScaled(7, 7, 7);
+        //gl.glColor3f(0.7f, 0.7f, 0.7f);
+
+        gl.glColor3f(1f, 1f, 1f);
+        applyTexture(marsTexture, glu, gl);
+        gl.glPopMatrix();
+
+        gl.glPushMatrix();
+        gl.glTranslated(110, -350, 380);
+        gl.glScaled(7, 7, 7);
+        //gl.glColor3f(0.7f, 0.7f, 0.7f);
+
+        gl.glColor3f(1f, 1f, 1f);
+        applyTexture(planetTexture, glu, gl);
+        gl.glPopMatrix();
+
+
+
 
     }
 
@@ -131,8 +241,12 @@ public class AnaglyphRenderer extends JFrame
 
     @Override
     public void init(GLAutoDrawable drawable) {
-
+        final GL2 gl = drawable.getGL().getGL2();
+        this.planetTexture = getObjectTexture(gl, "/planet.jpg");
+        this.marsTexture = getObjectTexture(gl, "/mars.jpg");
+        this.venusTexture= getObjectTexture(gl, "/venus.jpg");
     }
+
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int width,
@@ -153,7 +267,7 @@ public class AnaglyphRenderer extends JFrame
         AnaglyphRenderer anaglyphRenderer = new AnaglyphRenderer(glcanvas);
         glcanvas.addGLEventListener(anaglyphRenderer);
         glcanvas.setFocusable(true);
-        glcanvas.setSize(800, 800);
+        glcanvas.setSize(1024, 1024);
         // the window frame
 
         anaglyphRenderer.getContentPane().add(glcanvas);

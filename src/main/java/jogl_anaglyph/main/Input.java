@@ -14,6 +14,8 @@ public class Input implements KeyListener, Runnable {
     private boolean keyRight;
 
     private Thread camAnimator;
+    private boolean keyDown;
+    private boolean keyUp;
 
     public Input(GLCanvas glCanvas, Camera camera) {
         glCanvas.addKeyListener(this);
@@ -22,7 +24,8 @@ public class Input implements KeyListener, Runnable {
         this.keyLeft = false;
         this.keyRight = false;
         this.keyBack = false;
-
+        this.keyUp = false;
+        this.keyDown =false;
 
         this.camAnimator = new Thread(this);
         this.camAnimator.start();
@@ -49,6 +52,13 @@ public class Input implements KeyListener, Runnable {
         if(keyCode == KeyEvent.VK_S){
             this.keyBack = true;
         }
+        if(keyCode == KeyEvent.VK_R){
+            this.keyUp = true;
+        }
+        if(keyCode == KeyEvent.VK_F){
+            this.keyDown = true;
+        }
+
 
         if (keyCode == KeyEvent.VK_ESCAPE) {
             System.exit(0);
@@ -72,6 +82,13 @@ public class Input implements KeyListener, Runnable {
         if(keyCode == KeyEvent.VK_S){
             this.keyBack = false;
         }
+
+        if(keyCode == KeyEvent.VK_R){
+            this.keyUp = false;
+        }
+        if(keyCode == KeyEvent.VK_F){
+            this.keyDown = false;
+        }
     }
 
     @Override
@@ -89,6 +106,12 @@ public class Input implements KeyListener, Runnable {
             }
             if(this.keyBack){
                 this.camera.backward();
+            }
+            if(this.keyUp){
+                this.camera.lookup();
+            }
+            if(this.keyDown){
+                this.camera.lookdown();
             }
 
             try {
