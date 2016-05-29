@@ -9,12 +9,36 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.util.Animator;
 import com.jogamp.opengl.util.gl2.GLUT;
 
-public class AnaglyphRenderer implements GLEventListener {
+import java.awt.*;
+import java.awt.event.*;
+
+public class AnaglyphRenderer extends JFrame
+        implements GLEventListener,
+        KeyListener,
+        MouseListener,
+        MouseMotionListener {
+    private Animator an;
+    public final static int LEFT_KEY = 37;
+    public final static int UP_KEY = 38;
+    public final static int RIGHT_KEY = 39;
+    public final static int DOWN_KEY = 40;
+
+    // Define camera variables
+    float cameraAzimuth = 0.0f, cameraSpeed = 0.0f, cameraElevation = 0.0f;
+
+    // Set camera at (0, 0, -20)
+
+    float cameraCoordsPosx = 0.0f, cameraCoordsPosy = 0.0f, cameraCoordsPosz = -20.0f;
+    // Set camera orientation
+    float cameraUpx = 0.0f, cameraUpy = 1.0f, cameraUpz = 0.0f;
+
+    private final GLCanvas canvas;
     private StereoCamera stereoCamera;
 
-    public AnaglyphRenderer() {
+    public AnaglyphRenderer(GLCanvas canvas) {
         super();
         stereoCamera = new StereoCamera(
                 2000.0f,   // convergence
@@ -24,17 +48,89 @@ public class AnaglyphRenderer implements GLEventListener {
                 10f,   //near clipping
                 20000f // far clipping
         );
+
+        this.canvas = canvas;
+        this.an = new Animator(canvas);
+        initializeJogl();
+    }
+
+    public Animator getAn() {
+        return an;
+    }
+
+    public void moveCamera() {
+        float[] tmp = polarToCartesian(cameraAzimuth, cameraSpeed, cameraElevation);
+        cameraCoordsPosx += tmp[0];
+        cameraCoordsPosy += tmp[1];
+        cameraCoordsPosz += tmp[2];
+    }
+
+    public void aimCamera(GL2 gl, GLU glu) {
+        gl.glLoadIdentity();
+        float[] tmp = polarToCartesian(cameraAzimuth, 100.0f, cameraElevation);
+        float[] camUp = polarToCartesian(cameraAzimuth, 100.0f, cameraElevation + 90);
+
+        cameraUpx += camUp[0];
+        cameraUpx += camUp[1];
+        cameraUpx += camUp[2];
+        glu.gluLookAt(cameraCoordsPosx, cameraCoordsPosy, cameraCoordsPosz,
+                cameraCoordsPosx + tmp[0], cameraCoordsPosy + tmp[1],
+                cameraCoordsPosz + tmp[2], cameraUpx, cameraUpy, cameraUpz);
+    }
+
+    private float[] polarToCartesian(float azimuth, float length, float altitude) {
+        float[] result = new float[3];
+        float x, y, z;
+
+        float theta = (float) Math.toRadians(90 - azimuth);
+        float tantheta = (float) Math.tan(theta);
+        float radianAlt = (float) Math.toRadians(altitude);
+        float cospi = (float) Math.cos(radianAlt);
+
+        x = (float) Math.sqrt((length * length) / (tantheta * tantheta + 1));
+        z = tantheta * x;
+        x = -x;
+        if ((azimuth >= 180 && azimuth <= 360) || azimuth == 0) {
+            x = -x;
+            z = -z;
+        }
+        y = (float) (Math.sqrt(z * z + x * x) * Math.sin(radianAlt));
+        if (length < 0) {
+            x = -x;
+            z = -z;
+            y = -y;
+        }
+
+        x = x * cospi;
+        z = z * cospi;
+
+        result[0] = x;
+        result[1] = y;
+        result[2] = z;
+
+        return result;
+    }
+
+    private void initializeJogl() {
+        this.canvas.addKeyListener(this);
+        this.canvas.addMouseMotionListener(this);
+        this.canvas.addMouseListener(this);
     }
 
     @Override
     public void display(GLAutoDrawable drawable) {
         final GL2 gl = drawable.getGL().getGL2();
         final GLUT glut = new GLUT();
+        final GLU glu = new GLU();
         gl.glClearDepth(1.0f);
         gl.glEnable(GL2.GL_DEPTH_TEST);
         gl.glDepthFunc(GL2.GL_LEQUAL);
 
         gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
+        gl.glLoadIdentity();
+        aimCamera(gl, glu);
+        moveCamera();
+
         // Apply the left frustum
         stereoCamera.applyFrustum(gl, true);
         gl.glColorMask(true, false, false, false);
@@ -83,8 +179,6 @@ public class AnaglyphRenderer implements GLEventListener {
 
     @Override
     public void init(GLAutoDrawable drawable) {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -103,16 +197,73 @@ public class AnaglyphRenderer implements GLEventListener {
         // The canvas
         final GLCanvas glcanvas = new GLCanvas(capabilities);
 
-        AnaglyphRenderer anaglyphRenderer = new AnaglyphRenderer();
+        AnaglyphRenderer anaglyphRenderer = new AnaglyphRenderer(glcanvas);
         glcanvas.addGLEventListener(anaglyphRenderer);
+        glcanvas.setFocusable(true);
         glcanvas.setSize(800, 800);
         // the window frame
-        JFrame frame = new JFrame("Scene example");
-        frame.getContentPane().add(glcanvas);
-        frame.setSize(frame.getContentPane().getPreferredSize());
-        frame.setResizable(false);
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        frame.setVisible(true);
+        anaglyphRenderer.getContentPane().add(glcanvas);
+        anaglyphRenderer.setSize(anaglyphRenderer.getContentPane().getPreferredSize());
+        anaglyphRenderer.setResizable(false);
+        anaglyphRenderer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        anaglyphRenderer.setVisible(true);
+
+        glcanvas.requestFocus();
+        anaglyphRenderer.getAn().start();
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if(e.getKeyCode() == KeyEvent.VK_UP){
+            cameraElevation-=100;
+            System.out.println("Elevated camera..");
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+
     }
 }
